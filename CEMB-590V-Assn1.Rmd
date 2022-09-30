@@ -2,7 +2,7 @@
 title: "Scientific Computing for Biologists - Assignment 1"
 author: "Carson Stacy"
 date: "2022-09-28"
-output: github_document
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
