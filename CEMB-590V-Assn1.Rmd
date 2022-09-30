@@ -2,7 +2,7 @@
 title: "Scientific Computing for Biologists - Assignment 1"
 author: "Carson Stacy"
 date: "2022-09-28"
-output: pdf_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -72,7 +72,7 @@ tidyDuckGoose_filt %>%
   theme(legend.position = "bottom", legend.title= element_blank()) + 
   xlab("Year") +
   ylab("Number of individuals identified")
-  e# scale_color_npg()
+  # scale_color_npg()
 ```
 
 
