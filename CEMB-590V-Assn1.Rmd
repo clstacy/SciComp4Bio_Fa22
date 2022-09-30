@@ -1,0 +1,150 @@
+---
+title: "Scientific Computing for Biologists - Assignment 1"
+author: "Carson Stacy"
+date: "2022-09-28"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Duck, Duck, Goose?
+
+## An anatidaephobic's guide to the state of New York
+
+Some people are afraid of ducks and geese, and I don't blame them. They are horrifying little honkers. Thankfully, with the help of the crowdsourced Ebird dataset maintained by Cornell University, we can learn more about where these menaces are most often seen so they can be properly avoided.
+
+```{r loading our data, echo=F, include=F}
+library(stringr)
+library(tidyverse)
+library(here)
+library(lubridate)
+library(ggmap)
+library(sf)
+library(osmdata)
+library(showtext)
+library(ggsci)
+library(magrittr)
+
+# read in the data
+tidyDuckGoose <- readr::read_delim(here("tidyDuckGoose.tsv"),
+                          delim = "\t", 
+                          escape_double = FALSE, 
+                          col_names = FALSE, 
+                          trim_ws = TRUE)
+```
+
+```{r echo=F, include=F}
+# Data processing
+tidyDuckGoose_filt <- tidyDuckGoose %>%
+  dplyr::rename("bird_type" = X1, 
+                "name" = X2, 
+                "species" = X3, 
+                "lat" = X4, "lon" = X5, 
+                "date" = X6)  %>% # add column names
+  dplyr::mutate(date = lubridate::as_date(date)) %>% # fix date formatting
+  drop_na() %>% # drop naughty data (n=5)
+  filter(name %in% c("American Black Duck", "Barnacle Goose", "Brant",
+                     "Cackling Goose", "Canada Goose", "Long-tailed Duck", 
+                     "Ring-necked Duck", "Ruddy Duck", "Wood Duck")) 
+                      # getting rid of undesired species groups (n=25)
+
+```
+
+
+## You're not crazy, it is getting worse!
+
+As you can see in figure 1 below, the number of spottings of these birds are on the rise. If this pattern continues, we will soon be inundated with human-goose conflict. 
+
+```{r timeseries, echo=FALSE, include=T}
+MyPalette <- c("Canada Goose" = "#8491B4FF", "Brant" = "#e64B35FF", "Cackling Goose" = "#F39B7FFF", "Barnacle Goose" = "#DC0000FF",
+               "American Black Duck" = "#3C5488FF", "Long-tailed Duck" = "#4DBBD5FF", "Ring-necked Duck" = "#00A087FF", "Ruddy Duck" =  "#91D1C2FF", "Wood Duck" = "#7E6148FF"
+               )
+
+tidyDuckGoose_filt %>%
+  group_by(name, year(date)) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = `year(date)`, y = count, group = name, color = name)) + 
+  geom_line(size=1.5) +
+  theme_classic() +
+  scale_colour_manual(values = MyPalette) +
+  theme(legend.position = "bottom", legend.title= element_blank()) + 
+  xlab("Year") +
+  ylab("Number of individuals identified")
+  e# scale_color_npg()
+```
+
+
+```{r map prep, echo=FALSE, include=F}
+NY_bb <- osmdata::getbb(place_name = "New York State")
+
+# NY_bb
+
+map <- get_stamenmap(bbox = NY_bb, zoom = 8, maptype = "toner-lite")
+ggmap(map)
+
+ny <- map_data("state", region="new york")
+```
+
+```{r map, echo=FALSE, include=T}
+ggmap(map) + 
+  geom_polygon(data = ny, aes(x=long, y=lat), color = "darkgrey", alpha = 0) +
+  geom_count(data=tidyDuckGoose_filt,
+             aes(x=signif(lon,6) ,y=signif(lat,6),color=name),
+             # size=1,
+             alpha=.5) +
+  facet_wrap(~fct_rev(bird_type)) +
+  theme_classic() +
+  scale_colour_manual(values = MyPalette) +
+  # scale_color_npg() +
+  labs(caption = "Data: Ebird Archive | Plot: @clstacy",
+       title = 'Fascinating fowel and where to find them',#) +#"\U1FABF") + #U+1F986
+       x = 'longitude',
+       y = 'latitude') +
+  theme(legend.position = "bottom", legend.title= element_blank())
+
+
+ggmap(map) + 
+  geom_polygon(data = ny, aes(x=long, y=lat), color = "darkgrey", alpha = 0) +
+  geom_count(data=tidyDuckGoose_filt,
+             aes(x=signif(lon,6) ,y=signif(lat,6),color=name),
+             # size=1,
+             alpha=.5) + 
+  theme_classic() +
+  # scale_color_npg() +
+  scale_colour_manual(values = MyPalette) +
+  labs(caption = "Data: Ebird Archive | Plot: @clstacy",
+       title = 'Fascinating fowel and where to find them',#) +#"\U1FABF") + #U+1F986
+       x = 'longitude',
+       y = 'latitude') +
+  theme(legend.position = "bottom", legend.title= element_blank())
+
+# 
+# ggplot() +
+#   geom_sf(data = bass_strait_polygon, fill = "#33658A", colour = NA) +
+#   geom_sf(data = yarra_line, colour = "#33658A", size = 1.5) +
+#   geom_sf(data = melbourne_trainline_lines, size = 1.2, colour = "gray40") +
+#   #Add a label for port phillip bay and bass strait
+#   geom_text(aes(label = "Port Phillip Bay"), x = 144.859280, y = -38.092014,
+#             family = "Alice", fontface = "bold", colour = "grey90") +
+#   geom_text(aes(label = "Bass Strait"), x = 144.513047, y = -38.421423,
+#             family = "Alice", fontface = "bold", colour = "grey90") +
+#   #Add title as text inside the plot
+#   geom_text(aes(label = "- Trains of Melbourne -"), x = 145.75, y = -37.43,
+#             family = "Alice", size = 8,
+#             colour = "grey45", fontface = "bold") +
+#   geom_text(aes(label = "Using OpenStreetMap data"), x = 145.75, y = -37.5,
+#             family = "Alice", size = 4,
+#             colour = "grey45", fontface = "bold") +
+#   labs(caption = "Data: OSM | Plot: @ldbailey255") +
+#   coord_sf(xlim = melb_bb[1, ], ylim = melb_bb[2, ]) +
+#   theme_classic() +
+#   theme(panel.background = element_rect(fill = "#f2eadf"),
+#         panel.border = element_rect(fill = NA, colour = "grey45", size = 1.5),
+#         axis.text = element_text(family = "Alice", size = 14),
+#         plot.caption = element_text(family = "Ubuntu Mono", size = 12,
+#                                   colour = "grey45"),
+#         axis.line = element_blank())
+```
+
