@@ -87,6 +87,8 @@ ggmap(map)
 ny <- map_data("state", region="new york")
 ```
 
+
+We can compare the geographical distributions of ducks and geese, note the overlap in distributions
 ```{r map, echo=FALSE, include=T}
 ggmap(map) + 
   geom_polygon(data = ny, aes(x=long, y=lat), color = "darkgrey", alpha = 0) +
@@ -103,8 +105,11 @@ ggmap(map) +
        x = 'longitude',
        y = 'latitude') +
   theme(legend.position = "bottom", legend.title= element_blank())
+```
 
 
+It appears there are regions, including near NYC, where many of these birds are seen.
+```{r map2, echo=FALSE, include=T}
 ggmap(map) + 
   geom_polygon(data = ny, aes(x=long, y=lat), color = "darkgrey", alpha = 0) +
   geom_count(data=tidyDuckGoose_filt,
@@ -148,3 +153,52 @@ ggmap(map) +
 #         axis.line = element_blank())
 ```
 
+
+```{r}
+ggplot(tidyDuckGoose_filt, aes(x=species, fill = name)) + 
+  geom_bar() + 
+  theme_classic() +
+  # scale_color_npg() +
+  scale_fill_manual(values = MyPalette) +
+  coord_flip() +
+  facet_wrap(~bird_type, scales = "free") +
+  geom_text(stat='count', aes(label=..count..), vjust=0.5, hjust=0.5, angle = -90) +
+  theme(legend.title= element_blank()) +
+  ggtitle("Number of each species identified in the data")
+             
+```
+
+```{r map_months, echo=FALSE, include=T}
+tidyDuckGoose_filt %>%
+  mutate(month = lubridate::month(date, label = T)) %>%
+  group_by(name, month) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = month, y = count, group = name, color = name)) + 
+  geom_line(size=1.5) +
+  theme_classic() +
+  scale_colour_manual(values = MyPalette) +
+  theme(legend.position = "bottom", legend.title= element_blank()) + 
+  xlab("Month") +
+  ylab("Seasonal trends in identification")
+```
+As we can see, geese are omnipresent. However, July does seem to be the best time for avoiding seeing ducks and geese in general.
+
+Broken down by year, we can see that this trend is conserved, but sightings are rapdily increasing.
+```{r map_months_yrs, echo=FALSE, include=T}
+tidyDuckGoose_filt %>%
+  mutate(month = lubridate::month(date, label = T),
+         year = lubridate::year(date)) %>%
+  filter(year > 2004) %>%
+  group_by(name, month, year) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = month, y = count, group = name, color = name)) + 
+  geom_line() +
+  geom_point(size = 0.5) +
+  theme_classic() +
+  scale_colour_manual(values = MyPalette) +
+  theme(legend.position = "bottom", legend.title= element_blank()) + 
+  xlab("Month") +
+  ylab("Seasonal trends in identification") + 
+  facet_wrap(~ year) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
